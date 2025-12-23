@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Magical Wizarding Quiz</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:"Poppins",sans-serif}
+
+/* Background uses your bg.jpg.jpg */
+body{
+  background:
+    url('bg.jpg.jpg') center/cover no-repeat fixed,
+    radial-gradient(circle at top,#3d1b63 0%,#05010a 60%,#000000 100%);
+  color:#f5e9ff;
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  padding:20px;
+  overflow:hidden;
+  position:relative;
+}
+
+#particleCanvas{
+  position:fixed;
+  top:0;left:0;
+  width:100%;height:100%;
+  pointer-events:none;
+  z-index:0;
+}
+
+.game-shell{
+  position:relative;
+  z-index:1;
+  width:100%;
+  max-width:900px;
+  background:rgba(10,2,25,0.95);
+  border-radius:20px;
+  border:2px solid rgba(233,194,67,0.85);
+  box-shadow:0 0 40px rgba(151,90,255,0.9);
+  padding:30px;
+  overflow:hidden;
+}
+
+.wallet{
+  position:absolute;
+  top:20px;right:20px;
+  display:flex;align-items:center;gap:10px;
+  padding:10px 16px;
+  border-radius:30px;
+  background:linear-gradient(135deg,#5b3a00,#f4c431,#ffd700);
+  box-shadow:0 0 24px rgba(255,215,0,.9);
+}
+.wallet-icon{
+  width:26px;height:26px;border-radius:50%;
+  background:radial-gradient(circle,#fff7c8 0%,#f1c54b 50%,#a06a00 100%);
+  display:flex;align-items:center;justify-content:center;
+}
+
+.main-panel{
+  min-height:380px;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
+  text-align:center;
+  gap:22px;
+  padding:40px 20px;
+}
+.title-big{
+  font-size:2.4rem;
+  letter-spacing:.12em;
+  text-shadow:0 0 25px rgba(255,215,0,.9),0 0 40px rgba(151,90,255,.8);
+}
+.subtitle{
+  font-size:1.05rem;
+  color:#e8d5ff;
+  max-width:600px;
+  line-height:1.6;
+}
+
+.btn-main{
+  padding:14px 36px;
+  border-radius:40px;
+  border:none;
+  cursor:pointer;
+  background:linear-gradient(135deg,#ffd700,#f4c431,#fff6a5);
+  color:#2c1a00;
+  font-weight:700;
+  font-size:1rem;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  box-shadow:0 7px 24px rgba(255,215,0,.7);
+  transition:all .2s ease;
+  min-width:200px;
+}
+.btn-main:hover{transform:translateY(-3px) scale(1.03);box-shadow:0 12px 30px rgba(255,215,0,.9)}
+.btn-main:active{transform:translateY(-1px) scale(1.01)}
+
+.rules-list{
+  text-align:left;
+  max-width:700px;
+  font-size:1rem;
+  line-height:1.7;
+}
+.rules-list li{margin-bottom:8px;padding-left:22px;position:relative;}
+.rules-list li::before{content:"✦";position:absolute;left:0;color:#ffd700;}
+
+.question-header{text-align:center;margin-bottom:18px}
+.stage-label{text-transform:uppercase;letter-spacing:.2em;font-size:.85rem;color:#bba5ff}
+.question-progress{font-size:.95rem;color:#c4b1ff;margin-top:4px}
+.question-text{font-size:1.35rem;font-weight:600;margin-top:12px;color:#f5ecff}
+
+.choices{width:100%;max-width:700px}
+.choice-btn{
+  width:100%;
+  margin:7px 0;
+  padding:16px 22px;
+  border-radius:14px;
+  border:none;
+  cursor:pointer;
+  background:linear-gradient(135deg,#2f133f,#3e154d,#150818);
+  color:#f7ecff;
+  font-size:1.05rem;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  box-shadow:0 6px 18px rgba(122,77,255,.4);
+  transition:all .2s ease;
+  position:relative;
+  overflow:hidden;
+}
+.choice-btn::before{
+  content:"";
+  position:absolute;
+  top:0;left:-120%;
+  width:60%;height:100%;
+  background:linear-gradient(120deg,transparent,rgba(255,255,255,.4),transparent);
+  opacity:0;
+}
+.choice-btn:hover::before{
+  left:140%;
+  opacity:1;
+  transition:all .5s ease;
+}
+.choice-btn:hover{transform:translateY(-3px);box-shadow:0 10px 26px rgba(208,178,255,.7);}
+.choice-btn.correct{background:linear-gradient(135deg,#1f4a22,#3aa655,#9ee37d);box-shadow:0 0 32px rgba(136,255,179,1);color:#062712;}
+.choice-btn.incorrect{background:linear-gradient(135deg,#5b1313,#a33232,#ff8a8a);box-shadow:0 0 28px rgba(255,136,136,.9);color:#3a0f0f;}
+.disabled{pointer-events:none;opacity:.65}
+
+.feedback{
+  font-size:1.05rem;
+  color:#ffd874;
+  min-height:34px;
+  margin-top:18px;
+  position:relative;
+  overflow:hidden;
+}
+.feedback::after{
+  content:"";
+  position:absolute;
+  top:0;left:-100%;
+  width:100%;height:100%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);
+  animation:sparkle 2s linear infinite;
+}
+@keyframes sparkle{
+  0%{left:-100%}
+  100%{left:100%}
+}
+
+.nav-row{display:flex;justify-content:center;margin-top:22px}
+
+.store-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:18px;
+  margin-top:20px;
+  max-width:700px;
+}
+.store-item{
+  padding:20px 16px;
+  border-radius:18px;
+  border:2px solid rgba(205,181,255,.7);
+  background:linear-gradient(145deg,rgba(44,26,86,.96),rgba(16,6,38,.98));
+  cursor:pointer;
+  transition:all .2s ease;
+  text-align:center;
+  position:relative;
+  overflow:hidden;
+}
+.store-item::before{
+  content:"";
+  position:absolute;
+  top:-50%;left:-50%;
+  width:200%;height:200%;
+  background:radial-gradient(circle,rgba(255,255,255,.15),transparent 60%);
+  opacity:0;
+}
+.store-item:hover::before{opacity:1;transition:opacity .4s;}
+.store-item.selected{border-color:#ffd700;box-shadow:0 0 32px rgba(255,215,0,.9);}
+.store-item.locked{opacity:.5;cursor:default}
+.item-title{font-size:1.1rem;font-weight:700;margin-bottom:6px;color:#f9e5ff}
+.item-price{font-size:1.1rem;color:#ffd874}
+.item-status{margin-top:8px;font-size:.9rem;color:#c4b1ff}
+.item-status.purchased{color:#9afea8}
+
+.store-footer{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-top:22px;
+  gap:16px;
+  flex-wrap:wrap;
+}
+.store-msg{font-size:1rem;min-height:30px;color:#ffd874;flex:1}
+
+.congrats-title{font-size:2.1rem;margin-bottom:12px}
+.hidden{display:none!important}
+
+@media(max-width:720px){
+  .store-grid{grid-template-columns:1fr}
+  .title-big{font-size:2rem}
+}
+</style>
+</head>
+<body>
+<canvas id="particleCanvas"></canvas>
+
+<div class="game-shell">
+
+  <!-- Wallet -->
+  <div class="wallet">
+    <div class="wallet-icon">🪙</div>
+    <span>Gold:</span>
+    <span id="walletValue">0</span>
+  </div>
+
+  <!-- Welcome -->
+  <div class="main-panel" id="welcomeScreen">
+    <h1 class="title-big">✦ Magical Wizarding Quiz ✦</h1>
+    <p class="subtitle">Test your Harry Potter knowledge and earn enchanted gold!</p>
+    <button class="btn-main" id="beginBtn">Begin Adventure</button>
+  </div>
+
+  <!-- Rules -->
+  <div class="main-panel hidden" id="rulesScreen">
+    <h1 class="title-big">📜 Game Rules</h1>
+    <ul class="rules-list">
+      <li>5 multiple-choice Harry Potter questions.</li>
+      <li>Each correct answer gives <strong>1000 gold coins</strong>.</li>
+      <li>All 5 correct gives a <strong>bonus 4000 gold</strong>.</li>
+      <li>After the quiz, visit the <strong>Magical Store</strong>.</li>
+      <li>Each item can be purchased only once.</li>
+      <li>Your gold is always visible at the top.</li>
+    </ul>
+    <button class="btn-main" id="playBtn">Start Quiz</button>
+  </div>
+
+  <!-- Quiz -->
+  <div class="main-panel hidden" id="quizScreen">
+    <div class="question-header">
+      <div class="stage-label">Hogwarts Quiz</div>
+      <div class="question-progress" id="questionProgress"></div>
+      <h2 class="question-text" id="questionText">Loading...</h2>
+    </div>
+    <div class="choices" id="choicesContainer"></div>
+    <div class="feedback" id="feedbackText"></div>
+    <div class="nav-row">
+      <button class="btn-main hidden" id="nextButton">Next</button>
+    </div>
+  </div>
+
+  <!-- Store -->
+  <div class="main-panel hidden" id="storeScreen">
+    <div class="question-header">
+      <div class="stage-label">Magical Store</div>
+      <h2 class="question-text">Spend your enchanted gold!</h2>
+      <div id="summaryText" style="margin-top:10px;"></div>
+    </div>
+    <div class="store-grid" id="storeGrid"></div>
+    <div class="store-footer">
+      <div class="store-msg" id="storeMessage">Select an item to purchase.</div>
+      <button class="btn-main" id="buyButton">Buy</button>
+    </div>
+  </div>
+
+  <!-- Congratulations -->
+  <div class="main-panel hidden" id="congratsScreen">
+    <h1 class="congrats-title">🎉 Congratulations! 🎉</h1>
+    <p class="subtitle">You completed the Magical Wizarding Quiz.</p>
+    <p class="subtitle">
+      Final score: <strong id="finalScore"></strong><br>
+      Gold remaining: <strong id="finalGold"></strong>
+    </p>
+    <button class="btn-main" id="replayBtn">Play Again</button>
+  </div>
+
+</div>
+
+<script>
+// ===== particle sparkles =====
+const canvas=document.getElementById('particleCanvas');
+const ctx=canvas.getContext('2d');
+canvas.width=window.innerWidth;
+canvas.height=window.innerHeight;
+let particles=[];
+
+class Particle{
+  constructor(x,y,type='gold'){
+    this.x=x;this.y=y;
+    this.vx=(Math.random()-0.5)*10;
+    this.vy=(Math.random()-1)*8;
+    this.life=1;this.decay=0.03;
+    this.size=Math.random()*4+2;
+    this.type=type;
+  }
+  update(){this.x+=this.vx;this.y+=this.vy;this.vy+=0.15;this.life-=this.decay;}
+  draw(){
+    ctx.save();ctx.translate(this.x,this.y);
+    let c;
+    if(this.type==='gold')c=`rgba(255,223,120,${this.life})`;
+    else if(this.type==='red')c=`rgba(255,120,120,${this.life})`;
+    else c=`rgba(255,255,255,${this.life})`;
+    ctx.fillStyle=c;
+    ctx.beginPath();ctx.arc(0,0,this.size,0,Math.PI*2);ctx.fill();
+    ctx.restore();
+  }
+}
+function emit(x,y,count,type='gold'){for(let i=0;i<count;i++)particles.push(new Particle(x,y,type));}
+function loop(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  particles=particles.filter(p=>{p.update();p.draw();return p.life>0;});
+  requestAnimationFrame(loop);
+}
+loop();
+window.addEventListener('resize',()=>{canvas.width=window.innerWidth;canvas.height=window.innerHeight;});
+
+// small mouse trail
+document.addEventListener('mousemove',e=>{
+  if(Math.random()<0.15)emit(e.clientX,e.clientY,1,'white');
+});
+
+// ===== music using your file music.mp3.mp3 =====
+const bgMusic=new Audio('music.mp3.mp3');
+bgMusic.loop=true;
+bgMusic.volume=0.35;
+let musicStarted=false;
+document.body.addEventListener('click',function startMusic(){
+  if(!musicStarted){
+    bgMusic.play().catch(()=>{});
+    musicStarted=true;
+  }
+},{once:true});
+
+// ===== quiz data =====
+const questions=[
+  {text:"Who is the Potions teacher in the Harry Potter books?",
+   choices:[
+    {label:"A",text:"Professor Snape",correct:true},
+    {label:"B",text:"Professor Dumbledore",correct:false},
+    {label:"C",text:"Professor Flitwick",correct:false}]},
+  {text:"What house does Harry Potter belong to?",
+   choices:[
+    {label:"A",text:"Slytherin",correct:false},
+    {label:"B",text:"Gryffindor",correct:true},
+    {label:"C",text:"Ravenclaw",correct:false}]},
+  {text:"What magical object allows Harry to become invisible?",
+   choices:[
+    {label:"A",text:"Time Turner",correct:false},
+    {label:"B",text:"Invisibility Cloak",correct:true},
+    {label:"C",text:"Elder Wand",correct:false}]},
+  {text:"Who is the headmaster of Hogwarts for most of the series?",
+   choices:[
+    {label:"A",text:"Severus Snape",correct:false},
+    {label:"B",text:"Albus Dumbledore",correct:true},
+    {label:"C",text:"Minerva McGonagall",correct:false}]},
+  {text:"What guards the entrance to the Gryffindor common room?",
+   choices:[
+    {label:"A",text:"A Troll",correct:false},
+    {label:"B",text:"The Fat Lady",correct:true},
+    {label:"C",text:"A Hippogriff",correct:false}]}
+];
+
+const storeItems=[
+  {id:"wand",name:"Wand Upgrade",cost:2000},
+  {id:"spellbook",name:"Spell Book",cost:2000},
+  {id:"broom",name:"Magical Broom",cost:3000},
+  {id:"charm",name:"Invisibility Charm",cost:3000}
+];
+
+// ===== state =====
+let wallet=0,qIndex=0,correct=0,answered=false,selectedItem=null;
+const purchased=new Set();
+
+// ===== DOM =====
+const screens={
+  welcome:document.getElementById('welcomeScreen'),
+  rules:document.getElementById('rulesScreen'),
+  quiz:document.getElementById('quizScreen'),
+  store:document.getElementById('storeScreen'),
+  congrats:document.getElementById('congratsScreen')
+};
+const walletValue=document.getElementById('walletValue');
+const beginBtn=document.getElementById('beginBtn');
+const playBtn=document.getElementById('playBtn');
+const replayBtn=document.getElementById('replayBtn');
+const questionText=document.getElementById('questionText');
+const questionProgress=document.getElementById('questionProgress');
+const choicesContainer=document.getElementById('choicesContainer');
+const feedbackText=document.getElementById('feedbackText');
+const nextButton=document.getElementById('nextButton');
+const summaryText=document.getElementById('summaryText');
+const storeGrid=document.getElementById('storeGrid');
+const storeMessage=document.getElementById('storeMessage');
+const buyButton=document.getElementById('buyButton');
+const finalScore=document.getElementById('finalScore');
+const finalGold=document.getElementById('finalGold');
+
+function show(name){
+  Object.values(screens).forEach(s=>s.classList.add('hidden'));
+  screens[name].classList.remove('hidden');
+}
+
+function updateWallet(){walletValue.textContent=wallet.toString();emit(100,80,5,'gold');}
+
+beginBtn.onclick=()=>show('rules');
+playBtn.onclick=()=>{show('quiz');renderQuestion();};
+replayBtn.onclick=()=>{wallet=0;qIndex=0;correct=0;answered=false;selectedItem=null;purchased.clear();updateWallet();show('welcome');};
+
+function renderQuestion(){
+  const q=questions[qIndex];
+  questionText.textContent=q.text;
+  questionProgress.textContent=`Question ${qIndex+1} of ${questions.length}`;
+  feedbackText.textContent="";
+  nextButton.classList.add('hidden');
+  answered=false;
+  choicesContainer.innerHTML="";
+  q.choices.forEach(ch=>{
+    const btn=document.createElement('button');
+    btn.className='choice-btn';
+    btn.innerHTML=`<span style="font-weight:600;margin-right:10px;">${ch.label}.</span>${ch.text}`;
+    btn.onclick=()=>handleAnswer(btn,ch.correct);
+    choicesContainer.appendChild(btn);
+  });
+}
+
+function handleAnswer(btn,isCorrect){
+  if(answered)return;
+  answered=true;
+  const r=btn.getBoundingClientRect();
+  emit(r.left+r.width/2,r.top+r.height/2,25,isCorrect?'gold':'red');
+  document.querySelectorAll('.choice-btn').forEach(b=>b.classList.add('disabled'));
+  if(isCorrect){
+    btn.classList.add('correct');
+    wallet+=1000;correct++;updateWallet();
+    feedbackText.textContent="Correct! You earned 1000 gold.";
+  }else{
+    btn.classList.add('incorrect');
+    feedbackText.textContent="Wrong answer. No gold this time.";
+    const q=questions[qIndex];
+    const correctText=q.choices.find(c=>c.correct).text;
+    [...choicesContainer.children].forEach(b=>{
+      if(b.textContent.includes(correctText))b.classList.add('correct');
+    });
+  }
+  if(qIndex<questions.length-1){
+    nextButton.textContent="Next Question";
+  }else{
+    if(correct===questions.length){
+      wallet+=4000;updateWallet();
+      feedbackText.textContent+=" Perfect score! Bonus 4000 gold!";
+      emit(window.innerWidth/2,window.innerHeight/2,60,'gold');
+    }
+    nextButton.textContent="Go to Store";
+  }
+  nextButton.classList.remove('hidden');
+}
+
+nextButton.onclick=()=>{
+  if(qIndex<questions.length-1){qIndex++;renderQuestion();}
+  else showStore();
+};
+
+function showStore(){
+  show('store');
+  summaryText.textContent=`You answered ${correct} of ${questions.length} correctly and have ${wallet} gold.`;
+  storeGrid.innerHTML="";
+  storeItems.forEach(item=>{
+    const card=document.createElement('div');
+    card.className='store-item';
+    if(purchased.has(item.id))card.classList.add('locked');
+    card.dataset.id=item.id;
+    card.innerHTML=`
+      <div class="item-title">${item.name}</div>
+      <div class="item-price">${item.cost} gold</div>
+      <div class="item-status" id="status-${item.id}">${purchased.has(item.id)?'Purchased':'Available'}</div>`;
+    card.onclick=()=>{
+      if(purchased.has(item.id))return;
+      selectedItem=item.id;
+      document.querySelectorAll('.store-item').forEach(c=>c.classList.remove('selected'));
+      card.classList.add('selected');
+      storeMessage.textContent=`Selected: ${item.name} (${item.cost} gold)`;
+    };
+    storeGrid.appendChild(card);
+  });
+}
+
+buyButton.onclick=()=>{
+  if(!selectedItem){storeMessage.textContent="Please select an item.";return;}
+  const item=storeItems.find(i=>i.id===selectedItem);
+  if(wallet<item.cost){storeMessage.textContent="Not enough gold.";return;}
+  wallet-=item.cost;updateWallet();
+  purchased.add(item.id);
+  const status=document.getElementById('status-'+item.id);
+  status.textContent="Purchased";status.classList.add('purchased');
+  const card=document.querySelector(`.store-item[data-id="${item.id}"]`);
+  card.classList.add('locked');card.classList.remove('selected');
+  storeMessage.textContent=`You bought: ${item.name}!`;
+  const r=card.getBoundingClientRect();
+  emit(r.left+r.width/2,r.top+r.height/2,40,'gold');
+  selectedItem=null;
+  if(purchased.size===storeItems.length){
+    finalScore.textContent=`${correct}/${questions.length}`;
+    finalGold.textContent=`${wallet} gold`;
+    show('congrats');
+  }
+};
+
+// start
+show('welcome');
+updateWallet();
+</script>
+</body>
+</html>
